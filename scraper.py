@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from bs4 import BeautifulSoup
-import sys
 import requests
+import sys
 import re
 
 
@@ -82,9 +82,7 @@ def clean_data(td):
 
 
 def extract_restaurant_metadata(elem):
-    metadata_rows = elem.find('tbody').find_all(
-        has_two_tds, recursive=False
-    )
+    metadata_rows = elem.find('tbody').find_all(has_two_tds, recursive=False)
     rdata = {}
     current_label = ''
     for row in metadata_rows:
@@ -118,7 +116,6 @@ def extract_score_data(elem):
     return data
 
 
-
 if __name__ == '__main__':
     kwargs = {
         'Inspection_Start': '2/1/2013',
@@ -134,4 +131,4 @@ if __name__ == '__main__':
     for listing in listings[:5]:
         metadata = extract_restaurant_metadata(listing)
         score_data = extract_score_data(listing)
-        print dict(zip(metadata, score_data))
+        print metadata['Business Name'], score_data
