@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from bs4 import BeautifulSoup
-import requests
 import sys
+import requests
 import re
 
 
@@ -54,11 +54,69 @@ def extract_data_listings(html):
     return html.find_all('div', id=id_finder)
 
 
-def has_two_tds(element):
-    is_tr = element.name == 'tr'
-    td_children = element.find_all('td', recursive=False)
+def has_two_tds(elem):
+    is_tr = elem.name == 'tr'
+    td_children = elem.find_all('td', recursive=False)
     has_two = len(td_children) == 2
     return is_tr and has_two
+
+
+def is_inspection_row(elem):
+    is_tr = elem.name == 'tr'
+    if not is_tr:
+        return False
+    td_children = elem.find_all('td', recursive=False)
+    has_four = len(td_children) == 4
+    this_text = clean_data(td_children[0]).lower()
+    contains_word = 'inspection' in this_text
+    does_not_start = not this_text.startswith('inspection')
+    return is_tr and has_four and contains_word and does_not_start
+
+
+def clean_data(td):
+    data = td.string
+    try:
+        return data.strip(" \n:-")
+    except AttributeError:
+        return u""
+
+
+def extract_restaurant_metadata(elem):
+    metadata_rows = elem.find('tbody').find_all(
+        has_two_tds, recursive=False
+    )
+    rdata = {}
+    current_label = ''
+    for row in metadata_rows:
+        key_cell, val_cell = row.find_all('td', recursive=False)
+        new_label = clean_data(key_cell)
+        current_label = new_label if new_label else current_label
+        rdata.setdefault(current_label, []).append(clean_data(val_cell))
+    return rdata
+
+
+def extract_score_data(elem):
+    inspection_rows = elem.find_all(is_inspection_row)
+    samples = len(inspection_rows)
+    total = high_score = average = 0
+    for row in inspection_rows:
+        strval = clean_data(row.find_all('td')[2])
+        try:
+            intval = int(strval)
+        except (ValueError, TypeError):
+            samples -= 1
+        else:
+            total += intval
+            high_score = intval if intval > high_score else high_score
+    if samples:
+        average = total/float(samples)
+    data = {
+        u'Average Score': average,
+        u'High Score': high_score,
+        u'Total Inspections': samples
+    }
+    return data
+
 
 
 if __name__ == '__main__':
@@ -74,11 +132,6 @@ if __name__ == '__main__':
     doc = parse_source(html, encoding)
     listings = extract_data_listings(doc)
     for listing in listings[:5]:
-        metadata_rows = listing.find('tbody').find_all(
-            has_two_tds, recursive=False
-        )
-        for row in metadata_rows:
-            for td in row.find_all('td', recursive=False):
-                print td.next,
-            print
-        print
+        metadata = extract_restaurant_metadata(listing)
+        score_data = extract_score_data(listing)
+        print dict(zip(metadata, score_data))
