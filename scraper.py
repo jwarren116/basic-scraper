@@ -37,21 +37,15 @@ def get_inspection_page(**kwargs):
 
 
 def load_inspection_page(**kwargs):
-    INSPECTION_URL = '/Users/jwarren/projects/scraper_restaurant/inspection_page.html'
+    INSPECTION_URL = 'inspection_page.html'
     with open(INSPECTION_URL, 'rb') as file_handle:
         html = file_handle.read()
-        encoding = 'utf-8'
-    return html, encoding
+    return html, 'utf-8'
 
 
 def parse_source(html, encoding='utf-8'):
     parsed = BeautifulSoup(html, from_encoding=encoding)
     return parsed
-
-
-def extract_data_listings(html):
-    id_finder = re.compile(r'PR[\d]+~')
-    return html.find_all('div', id=id_finder)
 
 
 def has_two_tds(elem):
@@ -79,6 +73,11 @@ def clean_data(td):
         return data.strip(" \n:-")
     except AttributeError:
         return u""
+
+
+def extract_data_listings(html):
+    id_finder = re.compile(r'PR[\d]+~')
+    return html.find_all('div', id=id_finder)
 
 
 def extract_restaurant_metadata(elem):
@@ -120,7 +119,7 @@ if __name__ == '__main__':
     kwargs = {
         'Inspection_Start': '2/1/2013',
         'Inspection_End': '2/1/2015',
-        'Zip_Code': '98109'
+        'Zip_Code': '98104'
     }
     if len(sys.argv) > 1 and sys.argv[1] == 'test':
         html, encoding = load_inspection_page()
@@ -128,7 +127,7 @@ if __name__ == '__main__':
         html, encoding = get_inspection_page(**kwargs)
     doc = parse_source(html, encoding)
     listings = extract_data_listings(doc)
-    for listing in listings[:5]:
+    for listing in listings:
         metadata = extract_restaurant_metadata(listing)
         score_data = extract_score_data(listing)
         print metadata['Business Name'], score_data
